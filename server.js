@@ -16,7 +16,7 @@ app.use('/',(req,res,next)=>{
 
 
 async function Main(){
-    await mongoDB.connect('mongodb://127.0.0.1:27017/test')
+    await mongoDB.connect('mongodb://127.0.0.1:27017/Location')
 }
 app.listen(Port, ()=>{console.log(`Server listen in ${Port}`)});
 
