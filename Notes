@@ -1,0 +1,21 @@
+City Select Aggregation Explanation
+
+The following aggregation is performed using City.aggregate([]) to retrieve and process city data with multiple stages.
+
+$lookup: Used to join the City collection with a foreign collection (countrysaves) to get data from the foreign field (foreignField).
+
+$unwind: Breaks down the foreign field's data, which is in an array, into separate documents.
+
+$addFields: Converts the foreign field data from an array to a single object by adding specific fields like CountryName and CountryCode.
+
+$project: Hides unnecessary fields, such as the original embedded country data and versioning (__v).
+
+$group: Groups all documents together to calculate the total count of documents (TotalCount).
+
+$push: Pushes all the original documents into a new subdocument named (subRootName) for later use.
+
+$unwind: Unwinds the subRootName array to bring the documents back to the original format with one document per result.
+
+$addFields: Adds TotalCount as a new field to the subdocument (subRootName).
+
+$replaceRoot: Replaces the root document with the subdocument (subRootName), effectively making it the new structure for each document.
