@@ -5,7 +5,15 @@ const CountrySchema = require('../MongoseDB/CountrySchema');
 const mongoose = require('mongoose')
 exports.LocationSave = async (request, response) => {
     try {
+        const json = request.body.data
 
+        let LocationID = await Location.countDocuments()
+        console.log(LocationID, 'Total')
+
+        json.LocationID = LocationID + 1
+        console.log(json)
+        const result = await Location.create(json)
+        return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": result } })
     } catch (err) {
         console.log(err, "Error")
     }
@@ -23,7 +31,7 @@ exports.LocationSelect = async (request, response) => {
                 await CountrySelect(json, response);
                 break;
             default:
-                // await TableSelect(json, response)
+                await TableSelect(json, response)
                 break;
         }
     } catch (err) {
@@ -31,11 +39,84 @@ exports.LocationSelect = async (request, response) => {
     }
 }
 
-const citySelect = async(json,response)=>{
+async function TableSelect(json, response) {
+
+    const result = await Location.aggregate([
+        {
+            $lookup: {
+                from: 'countrysaves',
+                localField: 'CountryMID',
+                foreignField: '_id',
+                as: 'country'
+            }
+        },
+        {
+            $lookup: {
+                from: 'cities',
+                localField: 'CityMID',
+                foreignField: '_id',
+                as: 'city'
+            }
+        },
+        {
+            $unwind: {
+                path: "$country"
+            }
+        },
+        {
+            $unwind: {
+                path: "$city"
+            }
+        },
+        {
+            $project: {
+                "_id": 1,
+                "LocationCode": 1,
+                "LocationName": 1,
+                "LocationID": 1,
+                "CityCode": "$city.CityCode",
+                "CityName": "$city.CityName",
+                "CityID": "$city.CityID",
+                "CityMID": 1,
+                "CountryName": "$country.CountryName",
+                "CountryCode": "$country.CountryCode",
+                "CountryID": "$country.CountryID",
+                "CountryMID": 1,
+
+            },
+
+        },
+        {
+            $group: {
+                '_id': '_id',
+                'totalcounts': {
+                    $sum: 1
+                },
+                "documents": { "$push": "$$ROOT" }
+            }
+        }, {
+            $unwind: {
+                path: "$documents"
+            }
+        },
+        {
+            $addFields: {
+                'documents.totalcounts': "$totalcounts"
+            }
+        },
+        {
+            $replaceRoot: { newRoot: "$documents" }
+        }
+
+    ])
+    return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": result } })
+}
+
+const citySelect = async (json, response) => {
     const pipeline = [];
     const match = {};
-    if(json.CountryMID){
-        match.CountryMID =new mongoose.Types.ObjectId(json.CountryMID)
+    if (json.CountryMID) {
+        match.CountryMID = new mongoose.Types.ObjectId(json.CountryMID)
     }
     pipeline.push(
         {
@@ -59,31 +140,31 @@ const citySelect = async(json,response)=>{
             }
         },
         {
-            $project: { country: 0 , __v: 0}
+            $project: { country: 0, __v: 0 }
         }
     );
 
     const city = await CitySchema.aggregate(pipeline);
     const Totalcounts = city.length
-    const result= city.map(val =>({
-       ...val,Totalcounts
-     }))
-    return response.send(result)
+    const result = city.map(val => ({
+        ...val, Totalcounts
+    }))
+    return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": result } })
 }
 
-const CountrySelect = async(json,response)=>{
-    const {index,page} = json
-    let country = await CountrySchema.find({},{__v:0})
-                  .skip((index-1)*page)
-                  .limit(page)
-    country = country.map(({ _id, CountryCode, CountryName, CountryID, currentDate, UpdatedtDate },i,array) => ({
+const CountrySelect = async (json, response) => {
+    const { index, page } = json
+    let country = await CountrySchema.find({}, { __v: 0 })
+        .skip((index - 1) * page)
+        .limit(page)
+    country = country.map(({ _id, CountryCode, CountryName, CountryID, currentDate, UpdatedtDate }, i, array) => ({
         _id,
         CountryCode,
         CountryName,
         CountryID,
         currentDate,
         UpdatedtDate,
-        Totalcounts:array.length,
-      }));
-    return response.send(country)
+        Totalcounts: array.length,
+    }));
+    return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": country } })
 }

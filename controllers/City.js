@@ -53,7 +53,8 @@ exports.CitySelect = async (request, response) => {
           },
           "documents": { $push: "$$ROOT" }
         }
-      }, {
+      }, 
+      {
         $unwind: {
           "path": "$documents"
         }
@@ -66,7 +67,7 @@ exports.CitySelect = async (request, response) => {
           newRoot: "$documents"
         }
       }
-    ]) .then(res =>{ return response.status(200).json({"Output":{"status":{"code":200,"message":"Success"},"data":res}})})
+    ]).then(res => { return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": res } }) })
   } catch (err) {
     console.log(err.message)
   }
