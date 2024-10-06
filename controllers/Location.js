@@ -41,7 +41,22 @@ exports.LocationSelect = async (request, response) => {
 
 async function TableSelect(json, response) {
 
-    const result = await Location.aggregate([
+    const pipeLine = [];
+    if(json.CountryMID){
+        pipeLine.push({
+            $match:{
+              'CountryMID':new mongoose.Types.ObjectId(json.CountryMID)
+            }
+        })
+    }
+    if(json.CityMID){
+        pipeLine.push({
+            $match:{
+              'CityMID':new mongoose.Types.ObjectId(json.CityMID)
+            }
+        })
+    }
+    pipeLine.push(
         {
             $lookup: {
                 from: 'countrysaves',
@@ -108,7 +123,8 @@ async function TableSelect(json, response) {
             $replaceRoot: { newRoot: "$documents" }
         }
 
-    ])
+    )
+    const result = await Location.aggregate(pipeLine)
     return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": result } })
 }
 

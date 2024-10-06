@@ -18,57 +18,69 @@ exports.CitySave = async (request, response) => {
 
 exports.CitySelect = async (request, response) => {
   try {
-    const result = await City.aggregate([
-      {
-        $lookup: {
-          from: "countrysaves",
-          localField: "CountryMID",
-          foreignField: "_id",
-          as: "country"
+    const json = request.body.data 
+    const pipeLine = [];
+    if(json.type = 'CountrySelect' && json.CountryMID ){
+      pipeLine.push({
+        $match:{
+          'CountryMID':new mongoose.Types.ObjectId(json.CountryMID)
         }
-      }, {
-        $unwind: {
-          "path": "$country"
+      })
+    }
+      pipeLine.push(
+        {
+          $lookup: {
+            from: "countrysaves",
+            localField: "CountryMID",
+            foreignField: "_id",
+            as: "country"
+          }
+        }, {
+          $unwind: {
+            "path": "$country"
+          }
+        },
+        {
+          $addFields: {
+            "TotalCountDocuments": "$TotalCount",
+            "CountryName": "$country.CountryName",
+            "CountryCode": "$country.CountryCode",
+            "CountryID": "$country.CountryID"
+          }
+        },
+        {
+          $project: {
+            country: 0,
+            __v: 0
+          }
+        },
+        {
+          $group: {
+            "_id": "_id",
+            "TotalCount": {
+              $sum: 1
+            },
+            "documents": { $push: "$$ROOT" }
+          }
+        }, 
+        {
+          $unwind: {
+            "path": "$documents"
+          }
+        }, {
+          $addFields: {
+            "documents.Totalcounts": "$TotalCount"
+          }
+        }, {
+          $replaceRoot: {
+            newRoot: "$documents"
+          }
         }
-      },
-      {
-        $addFields: {
-          "TotalCountDocuments": "$TotalCount",
-          "CountryName": "$country.CountryName",
-          "CountryCode": "$country.CountryCode",
-          "CountryID": "$country.CountryID"
-        }
-      },
-      {
-        $project: {
-          country: 0,
-          __v: 0
-        }
-      },
-      {
-        $group: {
-          "_id": "_id",
-          "TotalCount": {
-            $sum: 1
-          },
-          "documents": { $push: "$$ROOT" }
-        }
-      }, 
-      {
-        $unwind: {
-          "path": "$documents"
-        }
-      }, {
-        $addFields: {
-          "documents.Totalcounts": "$TotalCount"
-        }
-      }, {
-        $replaceRoot: {
-          newRoot: "$documents"
-        }
-      }
-    ]).then(res => { return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": res } }) })
+      )
+    const result = await City.aggregate(pipeLine).then(res => { return response.status(200).json({ "Output": { "status": { "code": 200, "message": "Success" }, "data": res } }) })
   } catch (err) {
     console.log(err.message)
   }
 }
+
+
